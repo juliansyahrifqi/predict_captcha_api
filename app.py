@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 import numpy as np
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
@@ -28,19 +29,21 @@ MAX_LENGTH = 6
 IMG_WIDTH = 170
 IMG_HEIGHT = 40
 
-project_root = "/Users/rifqipratama/Projects/captcha-api"
-model_path = os.path.join(project_root, "model.h5")
+load_dotenv()
+
+PROJECT_ROOT = os.getenv("PROJECT_ROOT")
+MODEL_PATH = os.path.join(PROJECT_ROOT, "model.h5")
 
 # Load the model with compile=False
 model = keras.models.load_model(
-    model_path, custom_objects={"CTCLayer": CTCLayer}, compile=False
+    MODEL_PATH, custom_objects={"CTCLayer": CTCLayer}, compile=False
 )
 
 prediction_model = keras.models.Model(
     model.get_layer(name="image").input, model.get_layer(name="dense2").output
 )
 
-vocab_path = os.path.join(project_root, "vocab.txt")
+vocab_path = os.path.join(PROJECT_ROOT, "vocab.txt")
 with open(vocab_path, "r") as f:
     vocab = f.read().splitlines()
 
@@ -75,11 +78,11 @@ def predict_captcha():
         return jsonify({'error': 'No image provided'}), 400
 
     image = request.files['image']
-    image.save('/tmp/temp_image.png')  # Save the image to a temporary file
+    image.save(f"{PROJECT_ROOT}/captcha.png")  # Save the image to a temporary file
 
-    predicted_captcha = CaptchaController.classify_image('/tmp/temp_image.png')
+    predicted_captcha = CaptchaController.classify_image(f"{PROJECT_ROOT}/captcha.png")
 
-    return jsonify({'predicted_captcha': predicted_captcha})
+    return jsonify({'predicted_captcha': predicted_captcha}), 200
 
 if __name__ == '__main__':
     app.run(port=9000, debug=True)
